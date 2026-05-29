@@ -9,24 +9,6 @@ viaductApplication {
     modulePackagePrefix.set("com.example")
 }
 
-// Create a separate source set for development-only code
-sourceSets {
-    create("dev") {
-        kotlin.srcDir("src/dev/kotlin")
-        compileClasspath += sourceSets.main.get().output
-        runtimeClasspath += sourceSets.main.get().output
-    }
-}
-
-// Dev source set configurations extend from main
-val devImplementation by configurations.getting {
-    extendsFrom(configurations.implementation.get())
-}
-
-val devRuntimeOnly by configurations.getting {
-    extendsFrom(configurations.runtimeOnly.get())
-}
-
 dependencies {
     // Micronaut DI (no HTTP server) - used in production
     ksp(libs.micronaut.inject.kotlin)
@@ -46,6 +28,9 @@ dependencies {
     testImplementation(libs.junit.jupiter)
 
     testRuntimeOnly(libs.junit.platform.launcher)
+    // Viaduct's scalar definitions (ExtendedScalars) depend on this at runtime, but it isn't
+    // pulled transitively into testRuntimeClasspath, so it must be declared explicitly here.
+    testRuntimeOnly(libs.graphql.java.extended.scalars)
 
     testImplementation(libs.kotest.runner.junit)
     testImplementation(libs.kotest.assertions.core)
@@ -53,10 +38,4 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
-}
-
-// The serve task (from viaduct.application plugin) should include dev classes
-tasks.named<JavaExec>("serve") {
-    classpath += sourceSets["dev"].output
-    classpath += sourceSets["dev"].runtimeClasspath
 }
