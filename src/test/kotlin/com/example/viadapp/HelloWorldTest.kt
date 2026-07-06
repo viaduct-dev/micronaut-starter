@@ -1,9 +1,12 @@
+@file:Suppress("ForbiddenImport")
+
 package com.example.viadapp
 
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.micronaut.context.ApplicationContext
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -98,4 +101,18 @@ class HelloWorldTest {
         result.errors shouldBe emptyList()
         result.getData().shouldNotBeNull()["echo"] shouldBe "hello world"
     }
+
+    @Test
+    fun `greeting resolver returns overridden message when config is set`() =
+        runBlocking {
+            val ctx = ApplicationContext.run(mapOf("greeting.message" to "Hi from config!"))
+            try {
+                val v = ctx.getBean(Viaduct::class.java)
+                val result = v.execute(ExecutionInput.create(operationText = "query { greeting }"))
+                result.errors shouldBe emptyList()
+                result.getData().shouldNotBeNull()["greeting"] shouldBe "Hi from config!"
+            } finally {
+                ctx.close()
+            }
+        }
 }
