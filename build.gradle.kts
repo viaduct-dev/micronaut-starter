@@ -6,10 +6,6 @@ plugins {
     jacoco
 }
 
-viaductApplication {
-    modulePackagePrefix.set("com.example")
-}
-
 application {
     mainClass.set("com.example.viadapp.AppKt")
 }
@@ -32,7 +28,6 @@ dependencies {
     implementation(libs.kotlin.reflect)
 
     implementation(project(":common"))
-    implementation(project(":viadapp"))
 
     testImplementation(enforcedPlatform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
