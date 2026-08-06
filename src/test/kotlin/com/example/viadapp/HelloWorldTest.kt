@@ -1,9 +1,13 @@
+@file:Suppress("ForbiddenImport")
+
 package com.example.viadapp
 
+import com.example.viadapp.production.DEFAULT_SCHEMA
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.micronaut.context.ApplicationContext
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -27,7 +31,7 @@ class HelloWorldTest {
         context.close()
     }
 
-    private fun execute(query: String) = viaduct.execute(ExecutionInput.create(operationText = query))
+    private fun execute(query: String) = viaduct.executeAsync(ExecutionInput.create(operationText = query), DEFAULT_SCHEMA.schemaId).join()
 
     @Test
     fun `greeting resolver returns Hello World`() {
@@ -84,4 +88,35 @@ class HelloWorldTest {
         result.errors!!.isNotEmpty() shouldBe true
         result.errors!![0].message shouldContain "Invalid syntax"
     }
+
+    @Test
+    fun `greet resolver returns personalised greeting`() {
+        val result = execute("""query { greet(name: "Viaduct") }""")
+        result.errors shouldBe emptyList()
+        result.getData().shouldNotBeNull()["greet"] shouldBe "Hello, Viaduct!"
+    }
+
+    @Test
+    fun `echo mutation returns the message`() {
+        val result = execute("""mutation { echo(message: "hello world") }""")
+        result.errors shouldBe emptyList()
+        result.getData().shouldNotBeNull()["echo"] shouldBe "hello world"
+    }
+
+    @Test
+    fun `greeting resolver returns overridden message when config is set`() =
+        runBlocking {
+            val ctx = ApplicationContext.run(mapOf("greeting.message" to "Hi from config!"))
+            try {
+                val v = ctx.getBean(Viaduct::class.java)
+                val result = v.execute(
+                    ExecutionInput.create(operationText = "query { greeting }"),
+                    DEFAULT_SCHEMA.schemaId,
+                )
+                result.errors shouldBe emptyList()
+                result.getData().shouldNotBeNull()["greeting"] shouldBe "Hi from config!"
+            } finally {
+                ctx.close()
+            }
+        }
 }
